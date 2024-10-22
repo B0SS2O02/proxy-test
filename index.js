@@ -1,20 +1,61 @@
-const http = require('http');
-const httpProxy = require('http-proxy');
+const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
+const axios = require('axios');
 
-// Создаем прокси-сервер
-const proxy = httpProxy.createProxyServer({});
+// Вставьте сюда ваш токен
+const token = 'YOUR_TELEGRAM_BOT_TOKEN';
 
-// Создаем сервер
-const server = http.createServer((req, res) => {
-  const targetUrl = 'http://example.com'; // Указываем целевой сервер
+// Создаем экземпляр бота
+const bot = new TelegramBot(token, {polling: true});
 
-  proxy.web(req, res, { target: targetUrl }, (err) => {
-    console.error('Proxy error:', err);
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Something went wrong.');
-  });
-});
+// Обработчик для получения файлов
+bot.on('message', async (msg) => {
+  const chatId = msg.chat.id;
 
-server.listen(3000, () => {
-  console.log('Proxy server is running on port 3000');
+  // Проверяем, содержит ли сообщение документ или медиафайл
+  if (msg.document || msg.photo || msg.video) {
+    let fileId;
+
+    // Если это документ
+    if (msg.document) {
+      fileId = msg.document.file_id;
+    }
+    
+    // Если это фото
+    if (msg.photo) {
+      fileId = msg.photo[msg.photo.length - 1].file_id; // Берем последнее фото (в наибольшем разрешении)
+    }
+
+    // Если это видео
+    if (msg.video) {
+      fileId = msg.video.file_id;
+    }
+
+    // Получаем ссылку на файл
+    const file = await bot.getFile(fileId);
+    const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+
+    // Скачиваем файл
+    const filePath = './downloads/' + (msg.document ? msg.document.file_name : file.file_path.split('/').pop());
+    const writer = fs.createWriteStream(filePath);
+
+    const response = await axios({
+      url: fileUrl,
+      method: 'GET',
+      responseType: 'stream'
+    });
+
+    response.data.pipe(writer);
+
+    writer.on('finish', () => {
+      bot.sendMessage(chatId, 'Файл успешно скачан: ' + filePath);
+    });
+
+    writer.on('error', () => {
+      bot.sendMessage(chatId, 'Произошла ошибка при загрузке файла.');
+    });
+
+  } else {
+    bot.sendMessage(chatId, 'Отправьте файл для загрузки.');
+  }
 });

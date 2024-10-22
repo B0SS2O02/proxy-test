@@ -6,6 +6,7 @@
   "author": "serdar3142 <serdar@pikir.io>",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.7.7",
     "http-proxy": "^1.18.1"
   }
 }
