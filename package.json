@@ -1,0 +1,11 @@
+{
+  "name": "proxy-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/B0SS2O02/proxy-test.git",
+  "author": "serdar3142 <serdar@pikir.io>",
+  "license": "MIT",
+  "dependencies": {
+    "http-proxy": "^1.18.1"
+  }
+}
